@@ -1,0 +1,35 @@
+# Thinkpad — matte-black chassis, white key legends, one TrackPoint-red accent.
+mode = "dark"
+
+accent = "#E3241A"
+selection = "#2F2F2F"
+muted = "#6B6B6B"
+
+background = "#141414"
+dark_background = "#0F0F0F"
+darker_background = "#0A0A0A"
+lighter_background = "#1E1E1E"
+
+foreground = "#E4E4E4"
+dark_foreground = "#8A8A8A"
+light_foreground = "#C8C8C8"
+bright_foreground = "#FFFFFF"
+
+red = "#EC3A30"
+yellow = "#D4A13A"
+orange = "#D9772B"
+green = "#28985F"
+cyan = "#5AA7AD"
+blue = "#5585CC"
+magenta = "#A67DB8"
+brown = "#7A5A3C"
+
+bright_red = "#FF5A4F"
+bright_yellow = "#EBC064"
+bright_green = "#4CC285"
+bright_cyan = "#82C4C8"
+bright_blue = "#7FA6DE"
+bright_magenta = "#C29ED1"
+
+hyprland_active_border = "#E3241A"
+hyprland_inactive_border = "rgba(3c3c3cdd)"

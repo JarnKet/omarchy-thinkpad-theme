@@ -1,0 +1,137 @@
+# Thinkpad shell surfaces. Based on Omarchy's shell.toml.tpl with literal
+# values from colors.toml. Red is reserved for focus, selection, and errors;
+# every other border is graphite (#3A3A3A). Keep in sync with colors.toml.
+
+[bar]
+background       = "#0A0A0A"
+background-alpha = 1.0
+text             = "#E4E4E4"
+# Modules calling attention to themselves (recording, voxtype, alerts, updates)
+active           = "#E3241A"
+scale-with-font  = true
+size-horizontal  = 26
+size-vertical    = 28
+
+[hyprland]
+active-border            = "#E3241A"
+active-border-foreground = "#E4E4E4"
+
+[controls]
+normal-color        = "#E4E4E4"
+normal-fill-alpha   = 0.04
+normal-border       = "#E4E4E4"
+normal-border-width = 1
+normal-border-alpha = 0.4
+
+hover-cursor-color        = "#E4E4E4"
+hover-cursor-fill-alpha   = 0.08
+hover-cursor-border       = "#E4E4E4"
+hover-cursor-border-width = 1
+hover-cursor-border-alpha = 0.25
+
+focus-color        = "#E4E4E4"
+focus-fill-alpha   = 0.08
+focus-border       = "#E4E4E4"
+focus-border-width = 1
+focus-border-alpha = 0.25
+
+selected-color        = "#E4E4E4"
+selected-fill-alpha   = 0.18
+selected-border       = "#E4E4E4"
+selected-border-width = 0
+selected-border-alpha = 1.0
+
+pressed-fill-alpha   = 0.22
+selection-fill-alpha = 0.35
+
+[spacing]
+scale = 1.0
+scale-with-font = true
+
+[font]
+base-size = 12
+
+[popups]
+background       = "#141414"
+background-alpha = 1.0
+text             = "#E4E4E4"
+border           = "#3A3A3A"
+border-alpha     = 1.0
+border-width     = 1
+
+[tooltip]
+background       = "#141414"
+background-alpha = 0.97
+text             = "#E4E4E4"
+border           = "#3A3A3A"
+border-alpha     = 1.0
+
+[notifications]
+background       = "#141414"
+background-alpha = 1.0
+text             = "#E4E4E4"
+border           = "#3A3A3A"
+border-alpha     = 1.0
+countdown        = "#E3241A"
+
+[launcher]
+background                = "#141414"
+background-alpha          = 0.95
+text                      = "#E4E4E4"
+border                    = "#3A3A3A"
+border-alpha              = 1.0
+scrim                     = "#0A0A0A"
+scrim-alpha               = 0.5
+selected-background       = "#E4E4E4"
+selected-background-alpha = 0.08
+selected-text             = "#E3241A"
+selected-border           = "#E4E4E4"
+selected-border-alpha     = 0.25
+
+[menu]
+background                = "#141414"
+background-alpha          = 1.0
+text                      = "#E4E4E4"
+border                    = "#3A3A3A"
+border-alpha              = 1.0
+scrim                     = "#0A0A0A"
+scrim-alpha               = 0.5
+selected-background       = "#E4E4E4"
+selected-background-alpha = 0.08
+selected-text             = "#E3241A"
+selected-border           = "#E4E4E4"
+selected-border-alpha     = 0.25
+
+[polkit]
+background       = "#141414"
+background-alpha = 1.0
+text             = "#E4E4E4"
+text-error       = "#EC3A30"
+border           = "#3A3A3A"
+border-error     = "#EC3A30"
+border-alpha     = 1.0
+scrim            = "#0A0A0A"
+scrim-alpha      = 0.5
+accent           = "#E3241A"
+
+[lock]
+background       = "#141414"
+background-alpha = 0.8
+text             = "#E4E4E4"
+placeholder      = "#8A8A8A"
+text-error       = "#EC3A30"
+border           = "#3A3A3A"
+border-active    = "#E3241A"
+border-error     = "#EC3A30"
+border-alpha     = 1.0
+selection        = "#E3241A"
+selection-alpha  = 0.45
+
+[image-picker]
+scrim                   = "#0A0A0A"
+scrim-alpha             = 0.5
+text                    = "#E4E4E4"
+selected-border         = "#E3241A"
+selected-border-alpha   = 1.0
+unselected-border       = "#E4E4E4"
+unselected-border-alpha = 0.28
