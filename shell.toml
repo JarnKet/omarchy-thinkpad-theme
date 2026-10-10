@@ -1,11 +1,11 @@
-# Thinkpad shell surfaces. Based on Omarchy's shell.toml.tpl with literal
-# values from colors.toml. Red is reserved for focus, selection, and errors;
-# every other border is graphite (#3A3A3A). Keep in sync with colors.toml.
+# Thinkpad shell surfaces, Vantablack edition. Based on Omarchy's shell.toml.tpl
+# with literal values from colors.toml. Every surface is pure black; red is
+# reserved for focus, selection, and errors, and every other border is graphite.
 
 [bar]
-background       = "#0A0A0A"
+background       = "#000000"
 background-alpha = 1.0
-text             = "#E4E4E4"
+text             = "#FFFFFF"
 # Modules calling attention to themselves (recording, voxtype, alerts, updates)
 active           = "#E3241A"
 scale-with-font  = true
@@ -14,30 +14,30 @@ size-vertical    = 28
 
 [hyprland]
 active-border            = "#E3241A"
-active-border-foreground = "#E4E4E4"
+active-border-foreground = "#FFFFFF"
 
 [controls]
-normal-color        = "#E4E4E4"
+normal-color        = "#FFFFFF"
 normal-fill-alpha   = 0.04
-normal-border       = "#E4E4E4"
+normal-border       = "#FFFFFF"
 normal-border-width = 1
 normal-border-alpha = 0.4
 
-hover-cursor-color        = "#E4E4E4"
+hover-cursor-color        = "#FFFFFF"
 hover-cursor-fill-alpha   = 0.08
-hover-cursor-border       = "#E4E4E4"
+hover-cursor-border       = "#FFFFFF"
 hover-cursor-border-width = 1
 hover-cursor-border-alpha = 0.25
 
-focus-color        = "#E4E4E4"
+focus-color        = "#FFFFFF"
 focus-fill-alpha   = 0.08
-focus-border       = "#E4E4E4"
+focus-border       = "#FFFFFF"
 focus-border-width = 1
 focus-border-alpha = 0.25
 
-selected-color        = "#E4E4E4"
+selected-color        = "#FFFFFF"
 selected-fill-alpha   = 0.18
-selected-border       = "#E4E4E4"
+selected-border       = "#FFFFFF"
 selected-border-width = 0
 selected-border-alpha = 1.0
 
@@ -52,86 +52,86 @@ scale-with-font = true
 base-size = 12
 
 [popups]
-background       = "#141414"
+background       = "#000000"
 background-alpha = 1.0
-text             = "#E4E4E4"
-border           = "#3A3A3A"
+text             = "#FFFFFF"
+border           = "#333333"
 border-alpha     = 1.0
 border-width     = 1
 
 [tooltip]
-background       = "#141414"
+background       = "#000000"
 background-alpha = 0.97
-text             = "#E4E4E4"
-border           = "#3A3A3A"
+text             = "#FFFFFF"
+border           = "#333333"
 border-alpha     = 1.0
 
 [notifications]
-background       = "#141414"
+background       = "#000000"
 background-alpha = 1.0
-text             = "#E4E4E4"
-border           = "#3A3A3A"
+text             = "#FFFFFF"
+border           = "#333333"
 border-alpha     = 1.0
 countdown        = "#E3241A"
 
 [launcher]
-background                = "#141414"
+background                = "#000000"
 background-alpha          = 0.95
-text                      = "#E4E4E4"
-border                    = "#3A3A3A"
+text                      = "#FFFFFF"
+border                    = "#333333"
 border-alpha              = 1.0
-scrim                     = "#0A0A0A"
+scrim                     = "#000000"
 scrim-alpha               = 0.5
-selected-background       = "#E4E4E4"
+selected-background       = "#FFFFFF"
 selected-background-alpha = 0.08
 selected-text             = "#E3241A"
-selected-border           = "#E4E4E4"
+selected-border           = "#FFFFFF"
 selected-border-alpha     = 0.25
 
 [menu]
-background                = "#141414"
+background                = "#000000"
 background-alpha          = 1.0
-text                      = "#E4E4E4"
-border                    = "#3A3A3A"
+text                      = "#FFFFFF"
+border                    = "#333333"
 border-alpha              = 1.0
-scrim                     = "#0A0A0A"
+scrim                     = "#000000"
 scrim-alpha               = 0.5
-selected-background       = "#E4E4E4"
+selected-background       = "#FFFFFF"
 selected-background-alpha = 0.08
 selected-text             = "#E3241A"
-selected-border           = "#E4E4E4"
+selected-border           = "#FFFFFF"
 selected-border-alpha     = 0.25
 
 [polkit]
-background       = "#141414"
+background       = "#000000"
 background-alpha = 1.0
-text             = "#E4E4E4"
-text-error       = "#EC3A30"
-border           = "#3A3A3A"
-border-error     = "#EC3A30"
+text             = "#FFFFFF"
+text-error       = "#FF5A4F"
+border           = "#333333"
+border-error     = "#E3241A"
 border-alpha     = 1.0
-scrim            = "#0A0A0A"
+scrim            = "#000000"
 scrim-alpha      = 0.5
 accent           = "#E3241A"
 
 [lock]
-background       = "#141414"
+background       = "#000000"
 background-alpha = 0.8
-text             = "#E4E4E4"
-placeholder      = "#8A8A8A"
-text-error       = "#EC3A30"
-border           = "#3A3A3A"
+text             = "#FFFFFF"
+placeholder      = "#7A7A7A"
+text-error       = "#FF5A4F"
+border           = "#333333"
 border-active    = "#E3241A"
-border-error     = "#EC3A30"
+border-error     = "#E3241A"
 border-alpha     = 1.0
 selection        = "#E3241A"
 selection-alpha  = 0.45
 
 [image-picker]
-scrim                   = "#0A0A0A"
+scrim                   = "#000000"
 scrim-alpha             = 0.5
-text                    = "#E4E4E4"
+text                    = "#FFFFFF"
 selected-border         = "#E3241A"
 selected-border-alpha   = 1.0
-unselected-border       = "#E4E4E4"
+unselected-border       = "#FFFFFF"
 unselected-border-alpha = 0.28
