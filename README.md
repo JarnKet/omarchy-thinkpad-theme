@@ -12,7 +12,17 @@ attention matters.
 omarchy theme install https://github.com/JarnKet/omarchy-thinkpad-theme
 ```
 
-Cycle the three wallpapers with `omarchy theme bg next`.
+The theme ships no wallpapers of its own. Render the two ASCII ones (they
+put your username in the art, so they're made on your machine), then cycle
+them with `omarchy theme bg next`:
+
+```bash
+T=~/.config/omarchy/themes/thinkpad/tools
+mkdir -p ~/.config/omarchy/backgrounds/thinkpad
+python3 $T/make-ascii-wallpaper.py --world ~/.config/omarchy/backgrounds/thinkpad/1-ascii-world.png
+python3 $T/make-ascii-wallpaper.py ~/.config/omarchy/backgrounds/thinkpad/2-ascii-thinkpad.png
+omarchy theme set thinkpad
+```
 
 ### Boot screen (optional)
 
@@ -57,8 +67,6 @@ notifications, menus, and btop boxes included, stays black, white, and gray.
   Keep it in sync with `colors.toml`.
 - `btop.theme`: a monochrome btop on black.
 - `icons.theme`: `Yaru-gray`, as in Vantablack.
-- `backgrounds/`: the timezone map (the default), the mountain, and the red
-  ThinkPad.
 - `unlock.png`, `preview-unlock.png`: boot and login screen logo (the
   wallpaper's ASCII wordmark in its dotted frame) and its preview, rendered
   by `tools/make-unlock.sh` from `tools/wordmark.svg`.
@@ -67,8 +75,13 @@ notifications, menus, and btop boxes included, stays black, white, and gray.
   for about 10 seconds). `tools/palette.sh` prints the terminal palette.
 - `tools/make-ascii-wallpaper.py`: renders an ASCII-art wallpaper in the
   theme's colors (an open ThinkPad with a code editor on screen, and the
-  wordmark in binary) to `~/Pictures/thinkpad-ascii.png`. Drop the result in
-  `~/.config/omarchy/backgrounds/thinkpad/` to use it with the theme.
+  wordmark in binary) to `~/Pictures/thinkpad-ascii.png`. With `--world` it
+  renders the other one, after the time-zone map: the wordmark over a braille
+  world map in 24 hour columns, the date line in red and your own zone lit
+  (`~/Pictures/thinkpad-ascii-world.png`). Pass an output path to write it
+  somewhere else, e.g. into `~/.config/omarchy/backgrounds/thinkpad/`.
+- `tools/world-land.png`: the land for `--world`, from Natural Earth's 1:50m
+  land and lakes, rasterized at 10 pixels per degree.
 
 ## Developing
 
@@ -84,8 +97,8 @@ ln -s ~/Projects/thinkpad-theme ~/.config/omarchy/themes/thinkpad
 Not affiliated with or endorsed by Lenovo. ThinkPad, TrackPoint, and Lenovo
 are trademarks of Lenovo. The wordmark outline comes from
 [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ThinkPad_Logo.svg),
-where it is a public-domain text logo. The wallpapers belong to their
-respective creators and are not covered by this repository's license.
+where it is a public-domain text logo. Map data from
+[Natural Earth](https://www.naturalearthdata.com/) (public domain).
 
 ## License
 

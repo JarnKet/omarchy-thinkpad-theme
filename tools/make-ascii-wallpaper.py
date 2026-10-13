@@ -6,7 +6,11 @@ keyboard, the ThinkPad wordmark spelled out in code underneath, all inside a
 dotted frame. Every mark on the image is a character on one monospace grid.
 
 Usage: tools/make-ascii-wallpaper.py [output.png] [--width 3840 --height 2160]
+       tools/make-ascii-wallpaper.py --world [output.png]
        tools/make-ascii-wallpaper.py --boot-logo [unlock.png]
+
+--world draws the other wallpaper: no laptop, the wordmark in the middle of a
+braille world map cut into hour columns, after the ThinkPad time-zone map.
 """
 
 import argparse
@@ -16,6 +20,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -159,8 +164,19 @@ def build_fills(camera, size):
 
 def line(grid, camera, a, b, cw, ch, color, bold=False):
     """Draw a 3D segment as characters, picked by its on-screen slope."""
-    (x0, y0), (x1, y1) = camera(np.array([a, b], float))
+    line2d(grid, *camera(np.array([a, b], float)), cw, ch, color, bold)
+
+
+def line2d(grid, p0, p1, cw, ch, color, bold=False, clip=None, vertical="|"):
+    """Draw a segment between two pixel positions as characters, picked by its
+    slope. clip(r, c) can veto cells."""
+    (x0, y0), (x1, y1) = p0, p1
     dx, dy = x1 - x0, y1 - y0
+
+    def put(r, c, s):
+        if clip is None or clip(r, c):
+            grid.put(r, c, s, color, bold)
+
     angle = math.degrees(math.atan2(dy, dx)) % 180
     if angle < 18 or angle > 162:
         # Shallow: one cell per column; the character follows the height of
@@ -171,13 +187,13 @@ def line(grid, camera, a, b, cw, ch, color, bold=False):
             y = y0 + dy * t
             r = int(y // ch)
             frac = y / ch - r
-            grid.put(r, c, "\u203e" if frac < 0.3 else ("-" if frac < 0.6 else "_"), color, bold)
+            put(r, c, "\u203e" if frac < 0.3 else ("-" if frac < 0.6 else "_"))
         return
-    s = "\\" if angle < 72 else ("|" if angle < 108 else "/")
+    s = "\\" if angle < 72 else (vertical if angle < 108 else "/")
     for r in range(int(min(y0, y1) // ch), int(max(y0, y1) // ch) + 1):
         y = (r + 0.5) * ch
         t = 0 if dy == 0 else min(1, max(0, (y - y0) / dy))
-        grid.put(r, int((x0 + dx * t) // cw), s, color, bold)
+        put(r, int((x0 + dx * t) // cw), s)
 
 
 # --- what the laptop's screen shows ------------------------------------------
@@ -525,14 +541,20 @@ def wordmark_masks(width_px):
     return white, red
 
 
-def draw_wordmark(grid, top_row, width_cols, cw, ch, message="ThinkPad // think, then ship. "):
+def wordmark_cover(width_cols, cw, ch):
+    """Per-cell coverage of the wordmark's white letters and its red dot."""
     white, red = wordmark_masks(width_cols * cw)
     rows = int(math.ceil(white.shape[0] / ch))
     pad_h = rows * ch - white.shape[0]
     white = np.pad(white, ((0, pad_h), (0, 0)))
     red = np.pad(red, ((0, pad_h), (0, 0)))
-    w_cov = white.reshape(rows, ch, width_cols, cw).mean((1, 3))
-    r_cov = red.reshape(rows, ch, width_cols, cw).mean((1, 3))
+    return (white.reshape(rows, ch, width_cols, cw).mean((1, 3)),
+            red.reshape(rows, ch, width_cols, cw).mean((1, 3)))
+
+
+def draw_wordmark(grid, top_row, width_cols, cw, ch, message="ThinkPad // think, then ship. "):
+    w_cov, r_cov = wordmark_cover(width_cols, cw, ch)
+    rows = w_cov.shape[0]
     left = (grid.cols - width_cols) // 2
 
     stream = "".join(format(ord(ch_), "08b") for ch_ in message)
@@ -566,15 +588,363 @@ def draw_frame(grid, inset_c, inset_r):
     return r0, r1, c0, c1
 
 
+# --- the world map variant ---------------------------------------------------
+#
+# After the ThinkPad time-zone wallpaper: the world in braille dots (the dots
+# btop draws its graphs with), cut into 24 hour columns, the date line in
+# TrackPoint red and the local zone lit, with the wordmark over it all.
+
+# Natural Earth 1:50m land minus the larger lakes (public domain), rasterized
+# to an equirectangular 1-bit image, 10 pixels per degree.
+LAND_MASK = os.path.join(THEME_DIR, "tools", "world-land.png")
+
+# NATO time-zone letters by UTC offset; J is skipped.
+ZONE_LETTERS = {0: "Z", **{h: "ABCDEFGHIKLM"[h - 1] for h in range(1, 13)},
+                **{-h: "NOPQRSTUVWXY"[h - 1] for h in range(1, 13)}}
+
+# The International Date Line, simplified, north to south (lat, lon): east of
+# Chukotka, west of the Aleutians, around Kiribati's Line Islands, between the
+# two Samoas, east of Tonga.
+DATE_LINE = [(90, 180), (75, 180), (67.5, -168.75), (65.5, -169), (52.5, 170), (48, 180),
+             (5.3, 180), (5.3, -150), (-11.5, -150), (-11.5, -169), (-15, -171.5),
+             (-45, -172.5), (-51.2, 180), (-90, 180)]
+
+# Where ThinkPads come from: label, lat, lon, which side the label goes.
+LANDMARKS = [
+    ("ARMONK", 41.13, -73.71, "right"),    # IBM
+    ("RALEIGH", 35.78, -78.64, "left"),    # IBM PC division, then Lenovo
+    ("BEIJING", 39.90, 116.40, "right"),   # Lenovo
+    ("YAMATO LAB", 35.46, 139.63, "right"),  # where ThinkPads are designed
+]
+
+LAND, LAND_LIT = 0x30, 0x68
+
+BRAILLE_BITS = np.array([[0x01, 0x08], [0x02, 0x10], [0x04, 0x20], [0x40, 0x80]])
+
+
+def miller(lat):
+    return 1.25 * np.log(np.tan(np.pi / 4 + 0.4 * np.radians(np.clip(lat, -89, 89))))
+
+
+def miller_inv(y):
+    return np.degrees(2.5 * np.arctan(np.exp(0.8 * y)) - 0.625 * np.pi)
+
+
+class WorldMap:
+    """The whole world in the Miller projection, 360 degrees east of `west`,
+    laid on the grid from cell (r0, c0)."""
+
+    def __init__(self, r0, c0, cols, west, cw, ch, north=84, south=-57):
+        self.r0, self.c0, self.cols, self.west = r0, c0, cols, west
+        self.cw, self.ch = cw, ch
+        self.ppr = cols * cw / (2 * math.pi)  # pixels per radian
+        self.top = miller(north)
+        self.rows = int(round((self.top - miller(south)) * self.ppr / ch))
+
+    def x(self, lon):
+        """Pixel x of a longitude, unwrapped: west + 360 is the right edge."""
+        return self.c0 * self.cw + math.radians(lon - self.west) * self.ppr
+
+    def y(self, lat):
+        return self.r0 * self.ch + (self.top - miller(lat)) * self.ppr
+
+    def cell(self, lat, lon):
+        x = self.x((lon - self.west) % 360 + self.west)
+        return int(self.y(lat) // self.ch), int(x // self.cw)
+
+    def inside(self, r, c):
+        return self.r0 <= r < self.r0 + self.rows and self.c0 <= c < self.c0 + self.cols
+
+    def land(self, oversample=3):
+        """Braille land cells: a (rows, cols) array of dot bits, 2x4 per cell."""
+        mask = np.asarray(Image.open(LAND_MASK).convert("L")) > 127
+        ppd = mask.shape[1] / 360
+        n = oversample
+        xs = (np.arange(self.cols * 2 * n) + 0.5) / n * (self.cw / 2)
+        ys = (np.arange(self.rows * 4 * n) + 0.5) / n * (self.ch / 4)
+        lon = self.west + np.degrees(xs / self.ppr)
+        lat = miller_inv(self.top - ys / self.ppr)
+        mc = ((lon + 180) % 360 * ppd).astype(int)
+        mr = np.clip(((90 - lat) * ppd).astype(int), 0, mask.shape[0] - 1)
+        cover = mask[mr][:, mc].reshape(self.rows * 4, n, self.cols * 2, n).mean((1, 3))
+        dots = (cover >= 0.5).reshape(self.rows, 4, self.cols, 2)
+        return np.einsum("ayxb,yb->ax", dots, BRAILLE_BITS)
+
+    def trace(self, points, grid, color, bold=False):
+        """Draw a lat/lon polyline as a circuit trace of box-drawing characters
+        with rounded corners, wrapping it around the map's edges."""
+        lons = [(points[0][1] - self.west) % 360 + self.west]
+        for (_, a), (_, b) in zip(points, points[1:]):
+            lons.append(lons[-1] + (b - a + 180) % 360 - 180)  # the short way round
+        for shift in (-360, 0, 360):
+            px = [(self.x(lon + shift), self.y(lat)) for (lat, _), lon in zip(points, lons)]
+            cells = trace_cells(px, self.cw, self.ch)
+            for i, (r, c) in enumerate(cells):
+                if self.inside(r, c):
+                    grid.put(r, c, trace_char(cells, i), color, bold)
+
+
+TRACE_CHARS = {frozenset("UD"): "│", frozenset("LR"): "─", frozenset("DR"): "╭",
+               frozenset("DL"): "╮", frozenset("UR"): "╰", frozenset("UL"): "╯",
+               frozenset("U"): "│", frozenset("D"): "│", frozenset("L"): "─", frozenset("R"): "─"}
+
+
+def trace_cells(px, cw, ch):
+    """The 4-connected run of cells a pixel polyline passes through."""
+    cells = []
+    for (x0, y0), (x1, y1) in zip(px, px[1:]):
+        n = int(max(abs(x1 - x0), abs(y1 - y0))) + 1
+        seg = np.array([x1 - x0, y1 - y0])
+
+        def miss(cell):
+            # Distance from the cell's centre to the segment.
+            p = np.array([(cell[1] + 0.5) * cw - x0, (cell[0] + 0.5) * ch - y0])
+            t = min(1, max(0, p @ seg / max(1e-9, seg @ seg)))
+            return np.hypot(*(p - t * seg))
+
+        for i in range(n + 1):
+            cell = (int((y0 + (y1 - y0) * i / n) // ch), int((x0 + (x1 - x0) * i / n) // cw))
+            if cells and cell == cells[-1]:
+                continue
+            if cells and cell[0] != cells[-1][0] and cell[1] != cells[-1][1]:
+                # A diagonal step: turn through whichever neighbour the line passes closer to.
+                across, down = (cells[-1][0], cell[1]), (cell[0], cells[-1][1])
+                cells.append(across if miss(across) <= miss(down) else down)
+            cells.append(cell)
+    return cells
+
+
+def trace_char(cells, i):
+    sides = set()
+    for j in (i - 1, i + 1):
+        if 0 <= j < len(cells):
+            dr, dc = cells[j][0] - cells[i][0], cells[j][1] - cells[i][1]
+            sides.add({(-1, 0): "U", (1, 0): "D", (0, -1): "L", (0, 1): "R"}.get((dr, dc), "?"))
+    return TRACE_CHARS.get(frozenset(sides), "┼")
+
+
+def home_zone():
+    """The system time zone: its UTC offset in hours, its name, and the
+    zone.tab coordinates of its city (None when unknown)."""
+    offset = time.localtime().tm_gmtoff / 3600
+    name = os.environ.get("TZ", "").lstrip(":") or os.path.realpath("/etc/localtime").split("zoneinfo/")[-1]
+    for tab in ("zone1970.tab", "zone.tab"):
+        try:
+            with open(os.path.join("/usr/share/zoneinfo", tab)) as f:
+                for row in f:
+                    fields = row.rstrip("\n").split("\t")
+                    if row.startswith("#") or len(fields) < 3 or fields[2] != name:
+                        continue
+                    m = re.match(r"([+-]\d{2})(\d{2})(\d{2})?([+-]\d{3})(\d{2})(\d{2})?$", fields[1])
+                    if m:
+                        def deg(d, mi, s):
+                            sign = -1 if d.startswith("-") else 1
+                            return sign * (abs(int(d)) + int(mi) / 60 + int(s or 0) / 3600)
+                        return offset, name, (deg(*m.group(1, 2, 3)), deg(*m.group(4, 5, 6)))
+        except OSError:
+            pass
+    return offset, name, None
+
+
+def utc_label(offset):
+    sign = "+" if offset >= 0 else "-"
+    h, m = divmod(round(abs(offset) * 60), 60)
+    return f"UTC{sign}{h:02d}:{m:02d}"
+
+
+def dilate(mask, dr, dc):
+    out = mask.copy()
+    rows, cols = mask.shape
+    for r in range(-dr, dr + 1):
+        for c in range(-dc, dc + 1):
+            out[max(0, r):rows + min(0, r), max(0, c):cols + min(0, c)] |= \
+                mask[max(0, -r):rows + min(0, -r), max(0, -c):cols + min(0, -c)]
+    return out
+
+
+def draw_world(grid, m, zone_cols, offset, home, keep_clear):
+    """The map with its hour columns, date line, landmarks and the local zone.
+    Landmarks that would land in keep_clear (rows x cols bool) are left out."""
+    zones = m.cols // zone_cols
+    local = math.floor(offset + 0.5)
+    rows = range(m.r0, m.r0 + m.rows)
+
+    def zone_offset(k):
+        """UTC offset of the k-th column from the left (-12..12)."""
+        centre = m.west + (k + 0.5) * 15
+        return int(round(((centre + 180) % 360 - 180) / 15))
+
+    local_k = next((k for k in range(zones) if zone_offset(k) == local), None)
+    if local_k is not None:
+        # The local column, lit a little, from its letter down to its hour.
+        lc0 = m.c0 + local_k * zone_cols + 1
+        grid.bg[m.r0 - 2:m.r0 + m.rows + 2, lc0:lc0 + zone_cols - 1] = (14, 14, 14)
+
+    # Land, in braille dots, with a seam where each hour column starts.
+    bits = m.land()
+    for k in range(zones + 1):
+        c = k * zone_cols
+        if c < m.cols:
+            bits[:, c] &= ~(0x01 | 0x02 | 0x04 | 0x40)
+    for r in rows:
+        for c in range(m.cols):
+            if bits[r - m.r0, c]:
+                lit = local_k is not None and c // zone_cols == local_k
+                grid.put(r, m.c0 + c, chr(0x2800 + bits[r - m.r0, c]), gray(LAND_LIT if lit else LAND))
+
+    def sea(r, c):
+        return m.inside(r, c) and grid.ch[r, c] == " "
+
+    # Graticule every 30 degrees of latitude, over the sea only.
+    for lat in (60, 30, 0, -30):
+        y = m.y(lat)
+        line2d(grid, (m.c0 * m.cw, y), ((m.c0 + m.cols) * m.cw - 1, y), m.cw, m.ch,
+               gray(0x34 if lat == 0 else 0x24), clip=lambda r, c: sea(r, c) and c % 2 == 0)
+
+    # Hour columns.
+    for k in range(zones + 1):
+        c = m.c0 + k * zone_cols
+        for r in rows:
+            if grid.ch[r, c] == " " or c == m.c0 + m.cols:
+                grid.put(r, c, "│", gray(0x26))
+
+    # The date line, in red, over everything on the map.
+    m.trace(DATE_LINE, grid, RED, True)
+
+    # Compass rose in the empty South Pacific.
+    r, c = m.cell(-38, -128)
+    for dr, row in enumerate(["    N    ", "    |    ", "W --+-- E", "    |    ", "    S    "]):
+        for dc, s in enumerate(row):
+            if s != " ":
+                grid.put(r - 2 + dr, c - 4 + dc, s, gray(0xE4) if s == "N" else gray(0x5A), s == "N")
+
+    # Landmarks, and the red dot where the system clock says we are.
+    marks = [(label, lat, lon, side, "+", gray(0xD8), gray(0x8A)) for label, lat, lon, side in LANDMARKS]
+    if home:
+        marks.append(("YOU ARE HERE", home[0], home[1], "right", "●", BRIGHT_RED, gray(0xE4)))
+    for label, lat, lon, side, mark, mark_color, label_color in marks:
+        r, c = m.cell(lat, lon)
+        text = f" {label} "
+        start = c + 1 if side == "right" else c - len(text)
+        if keep_clear[r, min(c, start):max(c + 1, start + len(text))].any():
+            continue
+        grid.put(r, c, mark, mark_color, True)
+        grid.text(r, start, text, label_color, mark == "●")
+
+    # Letters above the columns, hours below as the original has them (the
+    # hour in each zone when it is noon in Greenwich), GMT and the date line
+    # marked under theirs.
+    letters_row, hours_row = m.r0 - 2, m.r0 + m.rows + 1
+    for k in range(zones):
+        z = zone_offset(k)
+        c = m.c0 + k * zone_cols + zone_cols // 2
+        is_local = k == local_k
+        letter = ZONE_LETTERS[z] if abs(z) < 12 else "M Y"  # either side of the date line
+        grid.text(letters_row, c - len(letter) // 2, letter, RED if is_local else gray(0x5A), is_local)
+        hour = f"{(12 + z) % 24 or 24:02d}h"
+        if is_local:
+            grid.text(hours_row, c - 2, f" {hour} ", gray(0xFF), True, bg=RED)
+            grid.text(hours_row + 1, c - len(utc_label(offset)) // 2, utc_label(offset), BRIGHT_RED)
+        else:
+            grid.text(hours_row, c - 1, hour, gray(0xC8) if z == 0 else gray(0x7A), z == 0)
+        if z == 0:
+            c0 = m.c0 + k * zone_cols + 1
+            grid.text(hours_row + 1, c0, "─" * (zone_cols - 5) + " GMT", gray(0xB0))
+    idl_c = m.cell(0, 180)[1]
+    grid.text(hours_row + 1, idl_c - 4, "IDL ─", RED, True)
+
+
+def draw_lat_lon_labels(grid, m, frame):
+    """Graticule labels outside the frame, with ticks on it, like a printed map."""
+    r0, r1, c0, c1 = frame
+    tick = gray(0x70)
+    for lat in (60, 30, 0, -30):
+        r = int(m.y(lat) // m.ch)
+        label = "0°" if lat == 0 else f"{abs(lat)}°{'N' if lat > 0 else 'S'}"
+        grid.text(r, c0 - 1 - len(label), label, gray(0x5A))
+        grid.text(r, c1 + 2, label, gray(0x5A))
+        grid.put(r, c0, "+", tick)
+        grid.put(r, c1, "+", tick)
+    for lon in range(-150, 181, 30):
+        c = int(m.x((lon - m.west) % 360 + m.west) // m.cw)
+        label = "0°" if lon == 0 else (f"{abs(lon)}°" if abs(lon) == 180 else f"{abs(lon)}°{'E' if lon > 0 else 'W'}")
+        grid.text(r0 - 1, c - len(label) // 2, label, gray(0x5A))
+        grid.put(r0, c, "+", tick)
+
+
+def world_wallpaper(output, width, height, centre=37.5):
+    # Hour columns line up with the map's edges when the centre is a column
+    # boundary: 7.5 degrees off a multiple of 15.
+    west = 7.5 + 15 * round((centre - 7.5) / 15) - 180
+    cw = round(width / 320)
+    ch = cw * 2
+    cols, rows = width // cw, height // ch
+    grid = Grid(cols, rows)
+    user = getpass.getuser()
+    offset, _, home = home_zone()
+
+    frame = draw_frame(grid, inset_c=24, inset_r=3)
+    r0, r1, c0, c1 = frame
+
+    # 24 hour columns of `zone_cols` cells each, centred in the frame; the map
+    # and its labels centred between the frame top and the caption.
+    zone_cols = 11
+    m = WorldMap(0, (cols - 24 * zone_cols) // 2, 24 * zone_cols, west, cw, ch)
+    block = m.rows + 6
+    m.r0 = r0 + 1 + max(2, (r1 - 3 - r0 - block) // 2) + 2
+
+    # The wordmark in the middle of the screen, the tagline under it, with the
+    # map cleared around their shapes.
+    width_cols = 100
+    w_cov, r_cov = wordmark_cover(width_cols, cw, ch)
+    wm_rows = w_cov.shape[0]
+    tagline = "New World.  New Thinking."
+    top = (rows - wm_rows - 2) // 2
+    left = (cols - width_cols) // 2
+    knock = np.zeros((rows, cols), bool)
+    shape = (w_cov > 0.18) | (r_cov > 0.3)
+    for r in range(wm_rows):
+        # Each row cleared from its first lit cell to its last, so no map
+        # shows between the letters.
+        lit = np.where(shape[r])[0]
+        if len(lit):
+            knock[top + r, left + lit[0]:left + lit[-1] + 1] = True
+    t0 = (cols - len(tagline)) // 2
+    knock[top + wm_rows + 1, t0:t0 + len(tagline)] = True
+    knock = dilate(knock, 1, 3)
+    draw_world(grid, m, zone_cols, offset, home, knock)
+    draw_lat_lon_labels(grid, m, frame)
+    grid.ch[knock] = " "
+    grid.bg[knock] = -1
+    draw_wordmark(grid, top, width_cols, cw, ch, message=f"ThinkPad // {user} // new world, new thinking. ")
+    grid.text(top + wm_rows + 1, t0, tagline, gray(0x9A))
+
+    caption = f"{user}@thinkpad:~$ think --globally"
+    grid.text(r1 - 2, c0 + 4, caption, gray(0x5A))
+    grid.put(r1 - 2, c0 + 4 + len(caption), " ", gray(0), bg=RED)
+    spec = f"T14s Gen 6  ·  {utc_label(offset)}  ·  Omarchy"
+    grid.text(r1 - 2, c1 - 4 - len(spec), spec, gray(0x5A))
+
+    img = render(grid, cw, ch, (width, height))
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+    img.save(output, optimize=True)
+    print(f"Wrote {output} ({width}x{height}, {cols}x{rows} cells, map {m.cols}x{m.rows} from row {m.r0})")
+
+
 # --- output ------------------------------------------------------------------
 
 def render(grid, cw, ch, size, glow=True):
     img = Image.new("RGB", size, BG)
+    draw_grid(img, grid, cw, ch, ((size[0] - grid.cols * cw) // 2, (size[1] - grid.rows * ch) // 2))
+    return add_glow(img, cw) if glow else img
+
+
+def draw_grid(img, grid, cw, ch, origin):
+    """Draw a grid's cells onto img with its top-left cell at origin (pixels)."""
     draw = ImageDraw.Draw(img)
     regular = ImageFont.truetype(FONT_REGULAR, int(cw / 0.6))
     bold = ImageFont.truetype(FONT_BOLD, int(cw / 0.6))
-    ox = (size[0] - grid.cols * cw) // 2
-    oy = (size[1] - grid.rows * ch) // 2
+    ox, oy = origin
 
     for r in range(grid.rows):
         for c in range(grid.cols):
@@ -588,13 +958,13 @@ def render(grid, cw, ch, size, glow=True):
                 draw.text((ox + c * cw, oy + r * ch - 1), s, fill=tuple(grid.fg[r, c]),
                           font=bold if grid.bold[r, c] else regular)
 
-    if glow:
-        # A soft halo around everything lit, like the reference renders' dots.
-        arr = np.asarray(img, np.float32)
-        lit = np.clip(arr - np.array(BG, np.float32), 0, 255).astype(np.uint8)
-        halo = np.asarray(Image.fromarray(lit).filter(ImageFilter.GaussianBlur(cw * 0.8)), np.float32)
-        img = Image.fromarray(np.clip(arr + halo * 0.7, 0, 255).astype(np.uint8))
-    return img
+
+def add_glow(img, cw):
+    """A soft halo around everything lit, like the reference renders' dots."""
+    arr = np.asarray(img, np.float32)
+    lit = np.clip(arr - np.array(BG, np.float32), 0, 255).astype(np.uint8)
+    halo = np.asarray(Image.fromarray(lit).filter(ImageFilter.GaussianBlur(cw * 0.8)), np.float32)
+    return Image.fromarray(np.clip(arr + halo * 0.7, 0, 255).astype(np.uint8))
 
 
 def boot_logo(output, wordmark_cols=108, cw=7):
@@ -618,10 +988,19 @@ def main():
     ap.add_argument("--height", type=int, default=2160)
     ap.add_argument("--boot-logo", action="store_true",
                     help="render only the framed wordmark, for unlock.png (default output: the theme's unlock.png)")
+    ap.add_argument("--world", action="store_true",
+                    help="render the world-map wallpaper (default output: ~/Pictures/thinkpad-ascii-world.png)")
+    ap.add_argument("--centre", type=float, default=37.5, metavar="LON",
+                    help="--world: longitude in the middle of the map, rounded to an hour-column "
+                         "boundary (default 37.5: the map's seam runs down the Alaska-Yukon border, so "
+                         "the whole date line fits)")
     args = ap.parse_args()
 
     if args.boot_logo:
         return boot_logo(args.output or os.path.join(THEME_DIR, "unlock.png"))
+    if args.world:
+        return world_wallpaper(args.output or os.path.expanduser("~/Pictures/thinkpad-ascii-world.png"),
+                               args.width, args.height, args.centre)
     args.output = args.output or os.path.expanduser("~/Pictures/thinkpad-ascii.png")
 
     size = (args.width, args.height)
