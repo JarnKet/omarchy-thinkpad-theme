@@ -5,6 +5,7 @@
 # them and returns to the previous workspace. Takes over the screen for ~10s.
 # Apply the theme first: omarchy theme set thinkpad
 #
+# Window titles are pinned, so the title bars never show user@host.
 # Hyprland launches the windows with a workspace rule, so they land on the
 # staging workspace whatever terminal this runs from. The shot is only kept
 # if that workspace is on screen holding exactly those windows; anything else
@@ -38,16 +39,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Start a window on the staging workspace and remember it as ours.
+# Start a window on the staging workspace and remember it as ours. Only a
+# window with the title we gave it counts: anything else that opens there
+# meanwhile (another app, another session) is left alone, and the final check
+# below then refuses the shot.
 launch() {
-  local before new
-  before=$(on_workspace)
-  dispatch "hl.dsp.exec_cmd(\"$1\", { workspace = \"$workspace\" })"
+  local title=$1 cmd=$2 addr
+  dispatch "hl.dsp.exec_cmd(\"$cmd\", { workspace = \"$workspace\" })"
   for _ in {1..50}; do
     sleep 0.1
-    new=$(comm -13 <(echo "$before") <(on_workspace))
-    if [[ -n $new ]]; then
-      ours+=($new)
+    addr=$(hyprctl clients -j | jq -r --arg ws "$workspace" --arg t "$title" \
+      '.[] | select(.workspace.name == $ws and .class == "foot" and .title == $t) | .address' | head -1)
+    if [[ -n $addr ]]; then
+      ours+=("$addr")
       return
     fi
   done
@@ -68,13 +72,13 @@ sleep 0.5
 
 # force_split = 2 tiles each new window right/below the focused one:
 # Neovim top-left, terminal bottom-left, btop full height on the right.
-launch "foot --working-directory=$theme_dir nvim tools/make-preview.sh"
+launch make-preview.sh "foot -o locked-title=yes --title=make-preview.sh --working-directory=$theme_dir nvim tools/make-preview.sh"
 sleep 1.5
-launch "foot btop -c $stage/btop.conf"
+launch btop "foot -o locked-title=yes --title=btop btop -c $stage/btop.conf"
 sleep 1
 dispatch 'hl.dsp.focus({ direction = "l" })'
 sleep 0.3
-launch "foot --working-directory=$theme_dir bash $stage/term.sh"
+launch thinkpad-theme "foot -o locked-title=yes --title=thinkpad-theme --working-directory=$theme_dir bash $stage/term.sh"
 
 # Let btop collect a few samples before the shot.
 sleep 5
