@@ -12,17 +12,7 @@ attention matters.
 omarchy theme install https://github.com/JarnKet/omarchy-thinkpad-theme
 ```
 
-The theme ships no wallpapers of its own. Render the two ASCII ones (they
-put your username in the art, so they're made on your machine), then cycle
-them with `omarchy theme bg next`:
-
-```bash
-T=~/.config/omarchy/themes/thinkpad/tools
-mkdir -p ~/.config/omarchy/backgrounds/thinkpad
-python3 $T/make-ascii-wallpaper.py --world ~/.config/omarchy/backgrounds/thinkpad/1-ascii-world.png
-python3 $T/make-ascii-wallpaper.py ~/.config/omarchy/backgrounds/thinkpad/2-ascii-thinkpad.png
-omarchy theme set thinkpad
-```
+Cycle its wallpapers with `omarchy theme bg next`.
 
 ### Boot screen (optional)
 
@@ -73,15 +63,30 @@ notifications, menus, and btop boxes included, stays black, white, and gray.
 - `preview.png`: the theme switcher thumbnail.
 - `tools/make-preview.sh`: regenerates `preview.png` (takes over the screen
   for about 10 seconds). `tools/palette.sh` prints the terminal palette.
-- `tools/make-ascii-wallpaper.py`: renders an ASCII-art wallpaper in the
-  theme's colors (an open ThinkPad with a code editor on screen, and the
-  wordmark in binary) to `~/Pictures/thinkpad-ascii.png`. With `--world` it
-  renders the other one, after the time-zone map: the wordmark over a braille
-  world map in 24 hour columns, the date line in red and your own zone lit
-  (`~/Pictures/thinkpad-ascii-world.png`). Pass an output path to write it
-  somewhere else, e.g. into `~/.config/omarchy/backgrounds/thinkpad/`.
-- `tools/world-land.png`: the land for `--world`, from Natural Earth's 1:50m
-  land and lakes, rasterized at 10 pixels per degree.
+- `backgrounds/`: thirteen ASCII wallpapers, all drawn the same way: every
+  mark is a character on one monospace grid (braille dots for land, shading
+  and fills, box-drawing for keys and traces), black, white and grays, and
+  one thing in TrackPoint red. None of them carries a name, a model or a
+  place; they render the same on any machine.
+  1. **world**: the time-zone map, the world in braille cut into 24 hour
+     columns, the date line in red, Yamato Lab's zone lit, the wordmark over it
+  2. **trackpoint**: the red nub up close, among G, H and B
+  3. **hinge**: a lid opening from closed to flat, every 30 degrees
+  4. **bento**: the shokado bento box the design came from, one red plum
+  5. **keyboard**: the keyboard from above, TrackPoint, buttons and touchpad
+  6. **orbit**: a space station over the curve of the Earth, its orbit in red
+  7. **notepad**: the pocket notepad with THINK on its cover, and a pencil
+  8. **exploded**: the base taken apart into its six layers
+  9. **mountains**: ridges going back into the haze, a red sun behind them
+  10. **setup**: a setup utility, the TrackPoint row selected
+  11. **halftone**: the wordmark's i blown up until the print shows
+  12. **drop**: a closed laptop dropped from 122 cm, landing on a corner
+  13. **source**: a wall of source code, the TrackPoint driver
+- `tools/make-ascii-wallpaper.py`: draws them into `backgrounds/`
+  (`make-ascii-wallpaper.py all`, or name the ones to redo).
+  `--boot-logo` draws `unlock.png`.
+- `tools/world-land.png`: the land for the world map and the globe, from
+  Natural Earth's 1:50m land and lakes, rasterized at 10 pixels per degree.
 
 ## Developing
 
